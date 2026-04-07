@@ -3,6 +3,9 @@ const express = require('express');
 const session = require('express-session');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
+const path = require('path');
+
+// Models
 const User = require('./models/User');
 const Attendance = require('./models/Attendance');
 
@@ -13,19 +16,26 @@ const PORT = process.env.PORT || 3000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(session({
-  secret: process.env.SESSION_SECRET,
+  secret: process.env.SESSION_SECRET || 'fallback_secret_change_this',
   resave: false,
   saveUninitialized: false,
   cookie: { maxAge: 24 * 60 * 60 * 1000 } // 1 hari
 }));
 
-// Set view engine
+// Set view engine dan lokasi folder views
 app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
-// Koneksi MongoDB
-mongoose.connect(process.env.MONGODB_URI)
+// Koneksi ke MongoDB (gunakan variabel environment RAILWAY atau MONGODB_URI)
+const mongoURI = process.env.MONGODB_URI || process.env.RAILWAY_MONGODB_URI;
+if (!mongoURI) {
+  console.error('❌ MONGODB_URI tidak ditemukan. Set environment variable.');
+  process.exit(1);
+}
+
+mongoose.connect(mongoURI)
   .then(async () => {
-    console.log('MongoDB connected');
+    console.log('✅ MongoDB connected');
     // Buat admin default jika belum ada
     const adminExists = await User.findOne({ role: 'admin' });
     if (!adminExists) {
@@ -35,18 +45,20 @@ mongoose.connect(process.env.MONGODB_URI)
         password: hashedPass,
         role: 'admin'
       });
-      console.log('Admin default dibuat: username=admin, password=admin123');
+      console.log('👑 Admin default dibuat: username=admin, password=admin123');
     }
   })
-  .catch(err => console.log(err));
+  .catch(err => {
+    console.error('❌ MongoDB connection error:', err);
+    process.exit(1);
+  });
 
-// Middleware cek login
+// Middleware auth
 function isAuthenticated(req, res, next) {
   if (req.session.userId) return next();
   res.redirect('/login');
 }
 
-// Middleware cek role
 function isAdmin(req, res, next) {
   if (req.session.role === 'admin') return next();
   res.status(403).send('Akses ditolak: hanya untuk admin');
@@ -134,7 +146,7 @@ app.get('/admin/dashboard', isAuthenticated, isAdmin, async (req, res) => {
   });
 });
 
-// API untuk filter absensi berdasarkan tanggal (admin)
+// API filter absensi
 app.get('/api/attendances', isAuthenticated, isAdmin, async (req, res) => {
   const { date } = req.query;
   let filter = {};
@@ -143,6 +155,12 @@ app.get('/api/attendances', isAuthenticated, isAdmin, async (req, res) => {
   res.json(attendances);
 });
 
+// Root redirect ke login
+app.get('/', (req, res) => {
+  res.redirect('/login');
+});
+
+// Jalankan server
 app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`🚀 Server berjalan di port ${PORT}`);
 });
