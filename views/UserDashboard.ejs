@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard User</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Halo, <%= username %></h2>
+            <a href="/logout" class="btn btn-danger">Logout</a>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5>Absensi Hari Ini</h5>
+            </div>
+            <div class="card-body text-center">
+                <% if (sudahAbsen) { %>
+                    <div class="alert alert-success">✅ Anda sudah melakukan absensi hari ini</div>
+                <% } else { %>
+                    <button id="absenBtn" class="btn btn-primary btn-lg">Absen Sekarang</button>
+                    <div id="info" class="mt-3"></div>
+                <% } %>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5>Riwayat Absensi Saya</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr><th>Tanggal</th><th>Waktu Absen</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        <% riwayat.forEach(att => { %>
+                        <tr>
+                            <td><%= att.date %></td>
+                            <td><%= new Date(att.checkIn).toLocaleTimeString() %></td>
+                            <td><%= att.status %></td>
+                        </tr>
+                        <% }) %>
+                        <% if (riwayat.length === 0) { %>
+                        <tr><td colspan="3" class="text-center">Belum ada riwayat absensi</td></tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $('#absenBtn').click(function() {
+            $.post('/attendance', function(data) {
+                if (data.success) {
+                    $('#info').html('<div class="alert alert-success">' + data.message + '</div>');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    $('#info').html('<div class="alert alert-danger">' + data.message + '</div>');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
