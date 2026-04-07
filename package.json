@@ -2,7 +2,7 @@
   "name": "sistem-absensi",
   "version": "1.0.0",
   "description": "sistem absensi memakai mongodb",
-  "main": "index.js".
+  "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
